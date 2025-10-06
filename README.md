@@ -1,7 +1,5 @@
 # Trendyol E-Ticaret Hackathonu 2025 - 2. Sıra Çözümü (Detaylı Teknik Açıklama)
 
-Selam Kaggle Ailesi,
-
 Trendyol E-Ticaret Hackathonu 2025'te 2. sırayı alan çözümümüzün teknik detaylarını sizlerle paylaşmaktan heyecan duyuyoruz. Bu yazıda, veri setine yaklaşımımızdan özellik mühendisliğine, modelleme stratejimizden elde ettiğimiz sonuçlara kadar tüm süreci adım adım açıklayacağız.
 
 ## 1. Problem ve Değerlendirme Metriği
