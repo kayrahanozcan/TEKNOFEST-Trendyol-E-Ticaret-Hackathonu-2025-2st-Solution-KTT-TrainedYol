@@ -1,5 +1,7 @@
 # Trendyol E-Ticaret Hackathonu 2025 - 2. Sıra Çözümü (Detaylı Teknik Açıklama)
 
+Video: https://www.youtube.com/live/iHJ2mQyHhKg?si=0UOWj3TQscBJCMth
+
 Yarışma: https://www.teknofest.org/tr/yarismalar/e-ticaret-hackathonu/
 Problem
 Bu yarışmada katılımcılar, Trendyol'un moda ile ilişkili popüler arama verilerini ve kullanıcı davranışlarını kullanarak arama sonuçlarının tıklama ve satın alıma dönüşüm oranını arttırmak üzerine çalışacaklar.
