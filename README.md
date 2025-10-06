@@ -1,6 +1,232 @@
 # Trendyol E-Ticaret Hackathonu 2025 - 2. Sıra Çözümü (Detaylı Teknik Açıklama)
 
 Yarışma: https://www.teknofest.org/tr/yarismalar/e-ticaret-hackathonu/
+Problem
+Bu yarışmada katılımcılar, Trendyol'un moda ile ilişkili popüler arama verilerini ve kullanıcı davranışlarını kullanarak arama sonuçlarının tıklama ve satın alıma dönüşüm oranını arttırmak üzerine çalışacaklar.
+
+Amaç: Belirli bir kullanıcı, arama terimi ve tarih (bu üçlü kombinasyonu bir oturum olarak değerlendiriyoruz) için kullanıcının her ürüne:
+
+Tıklayıp tıklamayacağını (clicked)
+Sipariş verip vermeyeceğini (ordered)
+göz önünde bulundurarak bu aksiyonların alındığı ürünleri öne çıkaracak sıralamalar üretmektir.
+
+Değerlendirme
+Çözümlerin değerlendirilmesinde üretilen sıralamalar üzerinde sipariş ve tıklama durumları için ayrı ayrı AUC metriği hesaplanacaktır. AUC, rastgele seçilen bir pozitif örneğin (tıklanan/sipariş verilen ürün), rastgele seçilen bir negatif örnekten (tıklanmayan/sipariş verilmeyen ürün) sıralamada daha önce görünme olasılığını temsil edecektir. Bu bağlamda 1'e yakın AUC değerleri, modelin ilgili ürünleri listenin üst sıralarına yerleştirme konusunda daha başarılı olduğunu gösterecektir.
+
+Tıklama ve sipariş AUC değerleri, yalnızca ilgili aksiyonların (tıklama/sipariş) gerçekleştiği oturumlar için ayrı ayrı hesaplanacak ve her bir metrik için bu oturumların ortalaması alınacaktır. Nihai skorlamada sipariş tahminlerinin doğruluğu, tıklama tahminlerine göre daha yüksek ağırlığa sahiptir. Final skor, bu ortalama AUC değerlerinin ağırlıklı toplamı olarak hesaplanacaktır:
+
+
+Burada S_click tıklama aksiyonu içeren oturumlar kümesini, S_order ise sipariş aksiyonu içeren oturumlar kümesini temsil etmektedir.
+
+Tahmin Formatı
+Test setindeki her oturum (session id) için, ürünleri (content ID) sipariş ve tıklama olasılıklarına göre sıralamanız gerekmektedir. Bu değerler boşlukla ayrılmış formatta olmalıdır. Her satır bir oturumu ifade eder ve her oturum için ürettiğiniz sıralamalarda oturumdaki bütün ürünleri kullanmanız gerekmektedir. Submission dosyası sütun isimlerini içermeli ve aşağıdaki formatta olmalıdır:
+
+session_id,prediction
+test_4fd3705b497bbe4f,564e63f4540cd721 d2ce51cef87f18c6 ff2753a5b6fa6ee8...
+test_e717abe75e333f76,972474c123473e31 14e6061e74c6ee22 feb28f583317d7db...
+
+# Trendyol E-Ticaret Hackathonu 2025 - Veri Açıklaması
+
+Bu belge, Trendyol E-Ticaret Hackathonu 2025 yarışmasında kullanılan veri setlerinin detaylı açıklamasını sunmaktadır. Veri setleri, kullanıcıların arama oturumları, ürün bilgileri ve etkileşim geçmişleri gibi zengin bilgiler içermektedir.
+
+## Önemli Notlar
+
+*   **Hashlenmiş Kimlikler**: Tüm kullanıcı ve içerik kimlikleri hashlenmiş ve anonimleştirilmiş formattadır.
+*   **Anonimleştirilmiş Değerler**: Fiyat ve ham aksiyon (tıklama, satın alım, sepete atma vb.) sayıları, çözümlerin performansını fazla etkilemeyecek miktarda gürültülendirilmiş ve ortak bir katsayı seti kullanılarak `[0,1]` aralığında ölçeklendirilmiştir. Bu değerlerin anonimleştirilmiş olması, etkileşim tipi (toplama, çıkarma, çarpma, bölme vb.) featureları üretmenizi engellemeyecektir.
+*   **Eksik Değerler**: Bazı kolonlarda null değerler bulunabilir.
+
+## Ana Veri Setleri
+
+### Oturum Verileri
+
+#### `train_sessions.parquet`
+
+**Açıklama**: Eğitim verisi - kullanıcı arama oturumları ve etkileşim bilgileri.
+
+| Kolon Adı              | Veri Tipi | Açıklama                                       |
+| :--------------------- | :-------- | :--------------------------------------------- |
+| `ts_hour`              | `datetime`  | Oturum zamanı (saat bazında)                   |
+| `search_term_normalized` | `string`    | Normalize edilmiş arama terimi                 |
+| `clicked`              | `int64`     | Ürüne tıklanma durumu (0: tıklanmadı, 1: tıklandı) |
+| `ordered`              | `int64`     | Ürün sipariş durumu (0: sipariş verilmedi, 1: sipariş verildi) |
+| `added_to_cart`        | `int64`     | Sepete ekleme durumu (0: eklenmedi, 1: eklendi) |
+| `added_to_fav`         | `int64`     | Favorilere ekleme durumu (0: eklenmedi, 1: eklendi) |
+| `user_id_hashed`       | `string`    | Hashlenmiş kullanıcı kimliği                   |
+| `content_id_hashed`    | `string`    | Hashlenmiş ürün kimliği                        |
+| `session_id`           | `string`    | Oturum kimliği                                 |
+
+#### `test_sessions.parquet`
+
+**Açıklama**: Test verisi - tahmin yapılacak oturum verileri.
+
+| Kolon Adı              | Veri Tipi | Açıklama                       |
+| :--------------------- | :-------- | :----------------------------- |
+| `ts_hour`              | `datetime`  | Oturum zamanı (saat bazında)   |
+| `search_term_normalized` | `string`    | Normalize edilmiş arama terimi |
+| `user_id_hashed`       | `string`    | Hashlenmiş kullanıcı kimliği   |
+| `content_id_hashed`    | `string`    | Hashlenmiş ürün kimliği        |
+| `session_id`           | `string`    | Oturum kimliği                 |
+
+### Ürün Verileri
+
+#### `content/metadata.parquet`
+
+**Açıklama**: Ürün kategori bilgileri ve özellik sayıları.
+
+| Kolon Adı                      | Veri Tipi            | Açıklama                                                                |
+| :----------------------------- | :------------------- | :---------------------------------------------------------------------- |
+| `level1_category_name`         | `string`             | Birincil kategori adı (örn: Giyim, Ayakkabı)                            |
+| `level2_category_name`         | `string`             | İkincil kategori adı (örn: Üst Giyim, Spor Ayakkabı)                    |
+| `leaf_category_name`           | `string`             | Uç kategori adı (en spesifik kategori)                                  |
+| `attribute_type_count`         | `float64`            | Ürün özellik türü sayısı                                                |
+| `total_attribute_option_count` | `float64`            | Toplam özellik seçeneği sayısı                                          |
+| `merchant_count`               | `float64`            | Ürünü satan satıcı sayısı                                               |
+| `filterable_label_count`       | `float64`            | Filtrelenebilir özellik sayısı                                          |
+| `content_creation_date`        | `datetime[μs, UTC]`  | Ürün oluşturulma tarihi                                                 |
+| `cv_tags`                      | `string`             | Ürün görselleri kullanılarak yapay zeka ile üretilmiş ilgili olabilecek terimler |
+| `content_id_hashed`            | `string`             | Hashlenmiş ürün kimliği                                                 |
+
+#### `content/price_rate_review_data.parquet`
+
+**Açıklama**: Ürün fiyat geçmişi, değerlendirme ve yorum bilgileri.
+
+| Kolon Adı                      | Veri Tipi | Açıklama                                   |
+| :----------------------------- | :-------- | :----------------------------------------- |
+| `update_date`                  | `datetime`  | Güncelleme tarihi                          |
+| `original_price`               | `float64`   | Orijinal fiyat                             |
+| `selling_price`                | `float64`   | Satış fiyatı                               |
+| `discounted_price`             | `float64`   | İndirimli fiyat                            |
+| `content_review_count`         | `float64`   | Ürün yorum sayısı                          |
+| `content_review_wth_media_count` | `float64`   | Görsel içeren yorum sayısı                 |
+| `content_rate_count`           | `float64`   | Ürün değerlendirme sayısı                  |
+| `content_rate_avg`             | `float64`   | Ortalama ürün puanı                        |
+| `content_id_hashed`            | `string`    | Hashlenmiş ürün kimliği                    |
+
+#### `content/search_log.parquet`
+
+**Açıklama**: Ürün bazında arama gösterim ve tıklama verileri.
+
+| Kolon Adı                 | Veri Tipi | Açıklama                                       |
+| :------------------------ | :-------- | :--------------------------------------------- |
+| `date`                    | `datetime`  | Tarih                                          |
+| `total_search_impression` | `float64`   | Toplam arama gösterimi sayısı (`[0,1]` aralığında) |
+| `total_search_click`      | `float64`   | Toplam arama tıklaması sayısı (`[0,1]` aralığında) |
+| `content_id_hashed`       | `string`    | Hashlenmiş ürün kimliği                        |
+
+#### `content/sitewide_log.parquet`
+
+**Açıklama**: Ürün bazında site geneli etkileşim verileri.
+
+| Kolon Adı           | Veri Tipi | Açıklama                                       |
+| :------------------ | :-------- | :--------------------------------------------- |
+| `date`              | `datetime`  | Tarih                                          |
+| `total_click`       | `float64`   | Toplam tıklama sayısı (`[0,1]` aralığında)         |
+| `total_cart`        | `float64`   | Toplam sepete ekleme sayısı (`[0,1]` aralığında)   |
+| `total_fav`         | `float64`   | Toplam favorilere ekleme sayısı (`[0,1]` aralığında) |
+| `total_order`       | `float64`   | Toplam sipariş sayısı (`[0,1]` aralığında)         |
+| `content_id_hashed` | `string`    | Hashlenmiş ürün kimliği                        |
+
+#### `content/top_terms_log.parquet`
+
+**Açıklama**: Ürün bazında en popüler arama terimleri.
+
+| Kolon Adı                 | Veri Tipi | Açıklama                                       |
+| :------------------------ | :-------- | :--------------------------------------------- |
+| `date`                    | `datetime`  | Tarih                                          |
+| `search_term_normalized` | `string`    | Normalize edilmiş arama terimi                 |
+| `total_search_impression` | `float64`   | Toplam arama gösterimi sayısı (`[0,1]` aralığında) |
+| `total_search_click`      | `float64`   | Toplam arama tıklaması sayısı (`[0,1]` aralığında) |
+| `content_id_hashed`       | `string`    | Hashlenmiş ürün kimliği                        |
+
+### Kullanıcı Verileri
+
+#### `user/metadata.parquet`
+
+**Açıklama**: Kullanıcı demografik bilgileri.
+
+| Kolon Adı            | Veri Tipi | Açıklama                       |
+| :------------------- | :-------- | :----------------------------- |
+| `user_gender`        | `string`    | Kullanıcı cinsiyeti            |
+| `user_birth_year`    | `float64`   | Kullanıcı doğum yılı          |
+| `user_tenure_in_days` | `int64`     | Kullanıcı üyelik süresi (gün cinsinden) |
+| `user_id_hashed`     | `string`    | Hashlenmiş kullanıcı kimliği   |
+
+#### `user/search_log.parquet`
+
+**Açıklama**: Kullanıcı bazında arama davranışları.
+
+| Kolon Adı                 | Veri Tipi | Açıklama                                       |
+| :------------------------ | :-------- | :--------------------------------------------- |
+| `ts_hour`                 | `datetime`  | Zaman damgası (saat bazında)                   |
+| `total_search_impression` | `float64`   | Toplam arama gösterimi sayısı (`[0,1]` aralığında) |
+| `total_search_click`      | `float64`   | Toplam arama tıklaması sayısı (`[0,1]` aralığında) |
+| `user_id_hashed`          | `string`    | Hashlenmiş kullanıcı kimliği                   |
+
+#### `user/sitewide_log.parquet`
+
+**Açıklama**: Kullanıcı bazında site geneli aktiviteler.
+
+| Kolon Adı           | Veri Tipi | Açıklama                                       |
+| :------------------ | :-------- | :--------------------------------------------- |
+| `ts_hour`           | `datetime`  | Zaman damgası (saat bazında)                   |
+| `total_click`       | `float64`   | Toplam tıklama sayısı (`[0,1]` aralığında)         |
+| `total_cart`        | `float64`   | Toplam sepete ekleme sayısı (`[0,1]` aralığında)   |
+| `total_fav`         | `float64`   | Toplam favorilere ekleme sayısı (`[0,1]` aralığında) |
+| `total_order`       | `float64`   | Toplam sipariş sayısı (`[0,1]` aralığında)         |
+| `user_id_hashed`    | `string`    | Hashlenmiş kullanıcı kimliği                   |
+
+#### `user/top_terms_log.parquet`
+
+**Açıklama**: Kullanıcı bazında moda kategorisiyle ilişkili arama terimlerine ait geçmiş.
+
+| Kolon Adı                 | Veri Tipi | Açıklama                                       |
+| :------------------------ | :-------- | :--------------------------------------------- |
+| `ts_hour`                 | `datetime`  | Zaman damgası (saat bazında)                   |
+| `search_term_normalized` | `string`    | Normalize edilmiş arama terimi                 |
+| `total_search_impression` | `float64`   | Toplam arama gösterimi sayısı (`[0,1]` aralığında) |
+| `total_search_click`      | `float64`   | Toplam arama tıklaması sayısı (`[0,1]` aralığında) |
+| `user_id_hashed`          | `string`    | Hashlenmiş kullanıcı kimliği                   |
+
+#### `user/fashion_search_log.parquet`
+
+**Açıklama**: Kullanıcı bazında moda kategorisiyle ilişkili arama logları.
+
+| Kolon Adı                 | Veri Tipi | Açıklama                                       |
+| :------------------------ | :-------- | :--------------------------------------------- |
+| `ts_hour`                 | `datetime`  | Zaman damgası (saat bazında)                   |
+| `total_search_impression` | `float64`   | Toplam arama gösterimi sayısı (`[0,1]` aralığında) |
+| `total_search_click`      | `float64`   | Toplam arama tıklaması sayısı (`[0,1]` aralığında) |
+| `user_id_hashed`          | `string`    | Hashlenmiş kullanıcı kimliği                   |
+| `content_id_hashed`       | `string`    | Hashlenmiş ürün kimliği                        |
+
+#### `user/fashion_sitewide_log.parquet`
+
+**Açıklama**: Kullanıcı bazında moda kategorisiyle ilişkili ürünlere ait site geneli aktiviteler.
+
+| Kolon Adı           | Veri Tipi | Açıklama                                       |
+| :------------------ | :-------- | :--------------------------------------------- |
+| `ts_hour`           | `datetime`  | Zaman damgası (saat bazında)                   |
+| `total_click`       | `float64`   | Toplam tıklama sayısı (`[0,1]` aralığında)         |
+| `total_cart`        | `float64`   | Toplam sepete ekleme sayısı (`[0,1]` aralığında)   |
+| `total_fav`         | `float64`   | Toplam favorilere ekleme sayısı (`[0,1]` aralığında) |
+| `total_order`       | `float64`   | Toplam sipariş sayısı (`[0,1]` aralığında)         |
+| `user_id_hashed`    | `string`    | Hashlenmiş kullanıcı kimliği                   |
+| `content_id_hashed` | `string`    | Hashlenmiş ürün kimliği                        |
+
+### Arama Terimi Verileri
+
+#### `term/search_log.parquet`
+
+**Açıklama**: Arama terimi bazında genel aksiyon istatistikleri.
+
+| Kolon Adı                 | Veri Tipi | Açıklama                                       |
+| :------------------------ | :-------- | :--------------------------------------------- |
+| `ts_hour`                 | `datetime`  | Zaman damgası (saat bazında)                   |
+| `search_term_normalized` | `string`    | Normalize edilmiş arama terimi                 |
+| `total_search_impression` | `float64`   | Toplam arama gösterimi sayısı (`[0,1]` aralığında) |
+| `total_search_click`      | `float64`   | Toplam arama tıklaması sayısı (`[0,1]` aralığında) |
+
+
 
 Dataset Description
 Önemli Notlar
