@@ -1,5 +1,159 @@
 # Trendyol E-Ticaret Hackathonu 2025 - 2. Sıra Çözümü (Detaylı Teknik Açıklama)
 
+Yarışma: https://www.teknofest.org/tr/yarismalar/e-ticaret-hackathonu/
+
+Dataset Description
+Önemli Notlar
+Hash'lenmiş Kimlikler: Tüm kullanıcı ve içerik kimlikleri hash'lenmiş ve anonimleştirilmiş formattadır.
+Anonimleştirilmiş Değerler: Fiyat ve ham aksiyon (tıklama, satın alım, sepete atma vb.) sayıları çözümlerin performansını fazla etkilemeyecek miktarda gürültülendirilmiş ve ortak bir katsayı seti kullanılarak [0,1] aralığında ölçeklendirilmiştir. Bu değerlerin anonimleştirilmiş olması etkileşim tipi (toplama, çıkarma, çarpma, bölme vb.) featureları üretmenizi engellemeyecektir.
+Eksik Değerler: Bazı kolonlarda null değerler bulunabilir.
+Ana Veri Setleri
+Oturum Verileri
+train_sessions.parquet
+Açıklama: Eğitim verisi - kullanıcı arama oturumları ve etkileşim bilgileri
+
+Kolon Adı	Veri Tipi	Açıklama
+ts_hour	datetime	Oturum zamanı (saat bazında)
+search_term_normalized	string	Normalize edilmiş arama terimi
+clicked	int64	Ürüne tıklanma durumu (0: tıklanmadı, 1: tıklandı)
+ordered	int64	Ürün sipariş durumu (0: sipariş verilmedi, 1: sipariş verildi)
+added_to_cart	int64	Sepete ekleme durumu (0: eklenmedi, 1: eklendi)
+added_to_fav	int64	Favorilere ekleme durumu (0: eklenmedi, 1: eklendi)
+user_id_hashed	string	Hash'lenmiş kullanıcı kimliği
+content_id_hashed	string	Hash'lenmiş ürün kimliği
+session_id	string	Oturum kimliği
+test_sessions.parquet
+Açıklama: Test verisi - tahmin yapılacak oturum verileri
+
+Kolon Adı	Veri Tipi	Açıklama
+ts_hour	datetime	Oturum zamanı (saat bazında)
+search_term_normalized	string	Normalize edilmiş arama terimi
+user_id_hashed	string	Hash'lenmiş kullanıcı kimliği
+content_id_hashed	string	Hash'lenmiş ürün kimliği
+session_id	string	Oturum kimliği
+Ürün Verileri
+content/metadata.parquet
+Açıklama: Ürün kategori bilgileri ve özellik sayıları
+
+Kolon Adı	Veri Tipi	Açıklama
+level1_category_name	string	Birincil kategori adı (örn: Giyim, Ayakkabı)
+level2_category_name	string	İkincil kategori adı (örn: Üst Giyim, Spor Ayakkabı)
+leaf_category_name	string	Uç kategori adı (en spesifik kategori)
+attribute_type_count	float64	Ürün özellik türü sayısı
+total_attribute_option_count	float64	Toplam özellik seçeneği sayısı
+merchant_count	float64	Ürünü satan satıcı sayısı
+filterable_label_count	float64	Filtrelenebilir özellik sayısı
+content_creation_date	datetime[μs, UTC]	Ürün oluşturulma tarihi
+cv_tags	string	Ürün görselleri kullanılarak yapay zeka ile üretilmiş ilgili olabilecek terimler
+content_id_hashed	string	Hash'lenmiş ürün kimliği
+content/price_rate_review_data.parquet
+Açıklama: Ürün fiyat geçmişi, değerlendirme ve yorum bilgileri
+
+Kolon Adı	Veri Tipi	Açıklama
+update_date	datetime	Güncelleme tarihi
+original_price	float64	Orijinal fiyat
+selling_price	float64	Satış fiyatı
+discounted_price	float64	İndirimli fiyat
+content_review_count	float64	Ürün yorum sayısı
+content_review_wth_media_count	float64	Görsel içeren yorum sayısı
+content_rate_count	float64	Ürün değerlendirme sayısı
+content_rate_avg	float64	Ortalama ürün puanı
+content_id_hashed	string	Hash'lenmiş ürün kimliği
+content/search_log.parquet
+Açıklama: Ürün bazında arama gösterim ve tıklama verileri
+
+Kolon Adı	Veri Tipi	Açıklama
+date	datetime	Tarih
+total_search_impression	float64	Toplam arama gösterimi sayısı ([0,1] aralığında)
+total_search_click	float64	Toplam arama tıklaması sayısı ([0,1] aralığında)
+content_id_hashed	string	Hash'lenmiş ürün kimliği
+content/sitewide_log.parquet
+Açıklama: Ürün bazında site geneli etkileşim verileri
+
+Kolon Adı	Veri Tipi	Açıklama
+date	datetime	Tarih
+total_click	float64	Toplam tıklama sayısı ([0,1] aralığında)
+total_cart	float64	Toplam sepete ekleme sayısı ([0,1] aralığında)
+total_fav	float64	Toplam favorilere ekleme sayısı ([0,1] aralığında)
+total_order	float64	Toplam sipariş sayısı ([0,1] aralığında)
+content_id_hashed	string	Hash'lenmiş ürün kimliği
+content/top_terms_log.parquet
+Açıklama: Ürün bazında en popüler arama terimleri
+
+Kolon Adı	Veri Tipi	Açıklama
+date	datetime	Tarih
+search_term_normalized	string	Normalize edilmiş arama terimi
+total_search_impression	float64	Toplam arama gösterimi sayısı ([0,1] aralığında)
+total_search_click	float64	Toplam arama tıklaması sayısı ([0,1] aralığında)
+content_id_hashed	string	Hash'lenmiş ürün kimliği
+Kullanıcı Verileri
+user/metadata.parquet
+Açıklama: Kullanıcı demografik bilgileri
+
+Kolon Adı	Veri Tipi	Açıklama
+user_gender	string	Kullanıcı cinsiyeti
+user_birth_year	float64	Kullanıcı doğum yılı
+user_tenure_in_days	int64	Kullanıcı üyelik süresi (gün cinsinden)
+user_id_hashed	string	Hash'lenmiş kullanıcı kimliği
+user/search_log.parquet
+Açıklama: Kullanıcı bazında arama davranışları
+
+Kolon Adı	Veri Tipi	Açıklama
+ts_hour	datetime	Zaman damgası (saat bazında)
+total_search_impression	float64	Toplam arama gösterimi sayısı ([0,1] aralığında)
+total_search_click	float64	Toplam arama tıklaması sayısı ([0,1] aralığında)
+user_id_hashed	string	Hash'lenmiş kullanıcı kimliği
+user/sitewide_log.parquet
+Açıklama: Kullanıcı bazında site geneli aktiviteler
+
+Kolon Adı	Veri Tipi	Açıklama
+ts_hour	datetime	Zaman damgası (saat bazında)
+total_click	float64	Toplam tıklama sayısı ([0,1] aralığında)
+total_cart	float64	Toplam sepete ekleme sayısı ([0,1] aralığında)
+total_fav	float64	Toplam favorilere ekleme sayısı ([0,1] aralığında)
+total_order	float64	Toplam sipariş sayısı ([0,1] aralığında)
+user_id_hashed	string	Hash'lenmiş kullanıcı kimliği
+user/top_terms_log.parquet
+Açıklama: Kullanıcı bazında moda kategorisiyle ilişkili arama terimlerine ait geçmiş
+
+Kolon Adı	Veri Tipi	Açıklama
+ts_hour	datetime	Zaman damgası (saat bazında)
+search_term_normalized	string	Normalize edilmiş arama terimi
+total_search_impression	float64	Toplam arama gösterimi sayısı ([0,1] aralığında)
+total_search_click	float64	Toplam arama tıklaması sayısı ([0,1] aralığında)
+user_id_hashed	string	Hash'lenmiş kullanıcı kimliği
+user/fashion_search_log.parquet
+Açıklama: Kullanıcı bazında moda kategorisiyle ilişkili arama logları
+
+Kolon Adı	Veri Tipi	Açıklama
+ts_hour	datetime	Zaman damgası (saat bazında)
+total_search_impression	float64	Toplam arama gösterimi sayısı ([0,1] aralığında)
+total_search_click	float64	Toplam arama tıklaması sayısı ([0,1] aralığında)
+user_id_hashed	string	Hash'lenmiş kullanıcı kimliği
+content_id_hashed	string	Hash'lenmiş ürün kimliği
+user/fashion_sitewide_log.parquet
+Açıklama: Kullanıcı bazında moda kategorisiyle ilişkili ürünlere ait site geneli aktiviteler
+
+Kolon Adı	Veri Tipi	Açıklama
+ts_hour	datetime	Zaman damgası (saat bazında)
+total_click	float64	Toplam tıklama sayısı ([0,1] aralığında)
+total_cart	float64	Toplam sepete ekleme sayısı ([0,1] aralığında)
+total_fav	float64	Toplam favorilere ekleme sayısı ([0,1] aralığında)
+total_order	float64	Toplam sipariş sayısı ([0,1] aralığında)
+user_id_hashed	string	Hash'lenmiş kullanıcı kimliği
+content_id_hashed	string	Hash'lenmiş ürün kimliği
+Arama Terimi Verileri
+term/search_log.parquet
+Açıklama: Arama terimi bazında genel aksiyon istatistikleri
+
+Kolon Adı	Veri Tipi	Açıklama
+ts_hour	datetime	Zaman damgası (saat bazında)
+search_term_normalized	string	Normalize edilmiş arama terimi
+total_search_impression	float64	Toplam arama gösterimi sayısı ([0,1] aralığında)
+total_search_click	float64	Toplam arama tıklaması sayısı ([0,1] aralığında)
+
+
+
 Trendyol E-Ticaret Hackathonu 2025'te 2. sırayı alan çözümümüzün teknik detaylarını sizlerle paylaşmaktan heyecan duyuyoruz. Bu yazıda, veri setine yaklaşımımızdan özellik mühendisliğine, modelleme stratejimizden elde ettiğimiz sonuçlara kadar tüm süreci adım adım açıklayacağız.
 
 ## 1. Problem ve Değerlendirme Metriği
